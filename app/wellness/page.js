@@ -1,111 +1,142 @@
 "use client";
 import { useState, useEffect } from "react";
 
+// Recommended Videos
+const WELLNESS_VIDEOS = [
+  { title: "5 Min Mindfulness", url: "https://www.youtube.com/watch?v=inpok4MKVLM", category: "Mindfulness" },
+  { title: "Guided Breathing", url: "https://www.youtube.com/watch?v=VUjiXcfKBn8", category: "Stress Relief" },
+  { title: "Deep Relaxation", url: "https://www.youtube.com/watch?v=YRJ6xoiRcpQ", category: "Calm" },
+];
+
+// Recommended Podcasts
+const WELLNESS_PODCASTS = [
+  { title: "8 Realistic Healthy Habits", url: "https://www.youtube.com/watch?v=-Kd7I6GrdGM", category: "Science" },
+  { title: "The Stress Expert: Brain Battery", url: "https://www.youtube.com/watch?v=9EqrUK7ghho", category: "Life" },
+  { title: "10 Minute Meditation", url: "https://www.youtube.com/watch?v=H_uc-uQ3Nkc", category: "Meditation" },
+];
+
+// Local Wellness Centers
+const WELLNESS_CENTERS = [
+  { name: "Sukha Wellness", address: "Mangaladevi Temple Rd, Mangaluru", id: "ChIJuzD5HO5bozsRzFmHF-mDtTk" },
+  { name: "Transform Health & Wellness", address: "Kadri, Mangaluru", id: "ChIJjfHCqNZbozsR-7iru54-qmU" },
+  { name: "SATHWA SPA & WELLNESS", address: "Attavar, Mangaluru", id: "ChIJO8f5rx9bozsRBjQn85huqcA" },
+];
+
+const getYoutubeId = (url) => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export default function Wellness() {
   const [water, setWater] = useState("");
   const [mood, setMood] = useState("");
   const [stress, setStress] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     const email = localStorage.getItem("userEmail");
-
     if (email) {
-      const data = JSON.parse(localStorage.getItem(`wellness_${email}`));
-
-      if (data) {
-        setWater(data.water || "");
-        setMood(data.mood || "");
-        setStress(data.stress || "");
-      }
+      const data = JSON.parse(localStorage.getItem(`wellness_${email}`) || "{}");
+      setWater(data.water || "");
+      setMood(data.mood || "");
+      setStress(data.stress || "");
     }
   }, []);
 
   const handleSave = () => {
     const email = localStorage.getItem("userEmail");
-
-    if (!email) {
-      alert("User not logged in");
-      return;
-    }
-
-    const data = { water, mood, stress };
-
-    // ✅ Save per user
-    localStorage.setItem(`wellness_${email}`, JSON.stringify(data));
-
-    alert("Wellness data saved!");
+    if (!email) return alert("User not logged in");
+    localStorage.setItem(`wellness_${email}`, JSON.stringify({ water, mood, stress }));
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
   };
 
-  return (
-    <div className="relative min-h-screen bg-gray-950 flex flex-col justify-center p-6 overflow-hidden">
-      
-      {/* Background */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-950/30 rounded-full blur-[120px]" />
+  const renderMediaCards = (items, title) => (
+    <div className="mt-12">
+      <h2 className="text-xl font-semibold text-white mb-4">{title}</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {items.map((item, idx) => {
+          const id = getYoutubeId(item.url);
+          return (
+            <a key={idx} href={item.url} target="_blank" rel="noopener noreferrer" className="group bg-gray-900 rounded-2xl border border-gray-800 hover:border-emerald-500/30 transition-all overflow-hidden flex flex-col">
+              <div className="relative aspect-video overflow-hidden bg-gray-800">
+                <img src={`https://img.youtube.com/vi/${id}/hqdefault.jpg`} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              </div>
+              <div className="p-4">
+                <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider mb-1">{item.category}</p>
+                <p className="text-white font-medium line-clamp-1">{item.title}</p>
+              </div>
+            </a>
+          );
+        })}
       </div>
+    </div>
+  );
 
-      <div className="relative z-10 w-full max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-2">
-          Daily Wellbeing
-        </h1>
-        <p className="text-gray-400 mb-8">
-          Track your mood, stress, and hydration.
-        </p>
-
-        {/* Input Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-
-          {/* Water */}
-          <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
-            <label className="text-gray-400 text-sm mb-2 block">
-              💧 Water (Liters)
-            </label>
-            <input
-              type="number"
-              value={water}
-              onChange={(e) => setWater(e.target.value)}
-              className="w-full text-2xl bg-transparent text-white outline-none"
-            />
-          </div>
-
-          {/* Mood */}
-          <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
-            <label className="text-gray-400 text-sm mb-2 block">
-              😊 Mood
-            </label>
-            <input
-              type="text"
-              value={mood}
-              onChange={(e) => setMood(e.target.value)}
-              className="w-full text-2xl bg-transparent text-white outline-none"
-            />
-          </div>
-
-          {/* Stress */}
-          <div className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
-            <label className="text-gray-400 text-sm mb-2 block">
-              🧘 Stress (1-10)
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={stress}
-              onChange={(e) => setStress(e.target.value)}
-              className="w-full text-2xl bg-transparent text-white outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <button
-            onClick={handleSave}
-            className="px-6 py-2 bg-emerald-500 text-black rounded-lg font-bold hover:bg-white"
+  const renderLocationCards = (items, title) => (
+    <div className="mt-12">
+      <h2 className="text-xl font-semibold text-white mb-4">{title}</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {items.map((place, idx) => (
+          <a 
+            key={idx} 
+            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + " " + place.address)}`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="group relative bg-gray-900 border border-gray-800 p-6 rounded-2xl hover:border-emerald-500/50 transition-all hover:shadow-lg hover:shadow-emerald-500/10 cursor-pointer flex flex-col gap-4"
           >
-            Save Wellness Log
-          </button>
+            <div className="flex items-start gap-4">
+              <div className="bg-gray-800 p-3 rounded-xl group-hover:bg-emerald-500/20 transition-colors shrink-0">
+                <svg className="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-white font-bold text-lg break-words pr-8">
+                  {place.name}
+                </h3>
+                <p className="text-gray-400 text-sm mt-1 break-words">
+                  {place.address}
+                </p>
+              </div>
+            </div>
+            <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-emerald-500 font-bold text-sm">View →</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-950 p-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-white mb-2">Daily Wellbeing</h1>
+        <p className="text-gray-400 mb-8">Track your mood, stress, and hydration.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {[
+            { label: "Water (L)", val: water, set: setWater, icon: "💧" },
+            { label: "Mood", val: mood, set: setMood, icon: "😊" },
+            { label: "Stress (1-10)", val: stress, set: setStress, icon: "🧘" },
+          ].map((item, idx) => (
+            <div key={idx} className="bg-gray-900 border border-gray-800 p-6 rounded-2xl">
+              <label className="text-gray-400 text-sm mb-2 block">{item.icon} {item.label}</label>
+              <input type={item.label === "Mood" ? "text" : "number"} value={item.val} onChange={(e) => item.set(e.target.value)} className="w-full text-3xl bg-transparent text-white outline-none" placeholder="0" />
+            </div>
+          ))}
         </div>
+
+        <button onClick={handleSave} className={`w-full py-4 rounded-xl font-bold transition-all ${isSaved ? "bg-emerald-600" : "bg-emerald-500 hover:bg-emerald-600"} text-black`}>
+          {isSaved ? "Saved Successfully!" : "Save Wellness Log"}
+        </button>
+
+        {renderMediaCards(WELLNESS_VIDEOS, "Recommended Videos")}
+        {renderMediaCards(WELLNESS_PODCASTS, "Recommended Podcasts")}
+        {renderLocationCards(WELLNESS_CENTERS, "Nearby Wellness Centers")}
       </div>
     </div>
   );

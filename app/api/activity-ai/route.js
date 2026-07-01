@@ -1,30 +1,122 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
-export async function POST() {
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-  return NextResponse.json({
-    success: true,
+// Retry if Gemini is busy
+async function generateWithRetry(model, prompt, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await model.generateContent(prompt);
+    } catch (error) {
+      if (error.status === 503 && i < retries - 1) {
+        console.log(`Gemini busy. Retrying... (${i + 1})`);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
 
-    data: {
-      advice:
-        "Walk 3000 more steps today and stay hydrated.",
+export async function POST(req) {
+  try {
+    const {
+      steps,
+      sleep,
+      water,
+      mood,
+      stress,
+      exercise,
+      goal,
+    } = await req.json();
 
-      diet:
-        "Include more protein and fruits today.",
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+    });
 
-      recovery:
-        "Sleep before 11 PM for better recovery.",
+    const prompt = `
+You are an expert AI Fitness Coach.
 
-      workout:
-        "20-minute full body workout recommended.",
+User Details:
 
-      tasks: [
-        "Drink 3L water",
-        "Walk 8000 steps",
-        "10 pushups x 3",
-        "Stretch for 10 mins",
-        "Sleep before 11 PM",
-      ],
-    },
-  });
+- Steps Walked: ${steps}
+- Exercise Duration: ${exercise} minutes
+- Sleep: ${sleep} hours
+- Water Intake: ${water} litres
+- Mood: ${mood}
+- Stress Level: ${stress}/10
+- Fitness Goal: ${goal}
+
+Return ONLY valid JSON.
+
+Format:
+
+{
+  "workout":"...",
+  "diet":"...",
+  "recovery":"...",
+  "tasks":"..."
+}
+
+Instructions:
+
+Workout:
+- Mention warm-up
+- Main workout
+- Cool-down
+- Keep under 80 words
+
+Diet:
+- Breakfast
+- Lunch
+- Evening Snack
+- Dinner
+- Hydration Tip
+- Keep under 100 words
+
+Recovery:
+- Sleep advice
+- Stretching
+- Relaxation
+- Recovery tip
+- Keep under 80 words
+
+Tasks:
+Generate exactly 5 checklist-style daily tasks.
+
+Return JSON only.
+`;
+
+    const result = await generateWithRetry(model, prompt);
+
+    let text = result.response.text();
+
+    // Remove markdown if Gemini adds it
+    text = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const data = JSON.parse(text);
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error("Gemini Error:", error);
+
+    let busyMessage =
+      "🤖 AI Coach is currently busy.\n\nPlease try again in a minute.\n\nYour activity data has been loaded successfully. ✅";
+
+    if (error.status !== 503) {
+      busyMessage =
+        "Unable to generate AI recommendations at the moment. Please try again later.";
+    }
+
+    return NextResponse.json({
+      workout: busyMessage,
+      diet: busyMessage,
+      recovery: busyMessage,
+      tasks: busyMessage,
+    });
+  }
 }

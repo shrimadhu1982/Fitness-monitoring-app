@@ -1,168 +1,94 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function FitnessPage() {
 
   const [steps, setSteps] = useState("");
+  const [exercise, setExercise] = useState("");
   const [sleep, setSleep] = useState("");
+  const [goal, setGoal] = useState("");
 
-  const [completedTasks, setCompletedTasks] =
-    useState([]);
+  const [recommendation, setRecommendation] =
+    useState("");
 
-  // ALL possible tasks
-  const ALL_TASKS = [
+  const [loading, setLoading] =
+    useState(false);
 
-    // Walking
-    "Complete 10,000 total steps",
-    "Walk for 45 minutes outdoors",
-    "Take stairs instead of elevator",
-    "Morning 20-minute walk",
-    "Evening recovery walk",
+  const saveFitnessData = async () => {
 
-    // Workout
-    "15 pushups × 3 sets",
-    "20 squats × 3 sets",
-    "1-minute plank × 3",
-    "30-minute full body workout",
-    "Upper body strength session",
-    "Lower body training session",
-    "20-minute HIIT workout",
-    "Core strengthening workout",
-    "Stretching session for 15 mins",
-    "10 burpees × 3 sets",
-
-    // Recovery
-    "Sleep before 11 PM",
-    "Foam rolling for 10 mins",
-    "Take a cold shower recovery",
-    "Meditate for 10 minutes",
-    "Deep breathing exercises",
-
-    // Nutrition
-    "Drink 3L of water",
-    "Eat a protein-rich breakfast",
-    "Avoid sugary drinks today",
-    "Eat fruits during snack time",
-    "No junk food today",
-    "Increase vegetable intake",
-
-    // Lifestyle
-    "Limit screen time before sleep",
-    "Stand and stretch every hour",
-    "Practice posture correction",
-    "Spend 15 mins in sunlight",
-    "Journal your fitness progress",
-
-    // Cardio
-    "Cycling for 30 mins",
-    "Jump rope for 10 mins",
-    "Dance workout session",
-    "Jog for 20 minutes",
-  ];
-
-  const [tasks, setTasks] =
-    useState([]);
-
-  // Generate random tasks
-  const generateTasks = () => {
-
-    let filteredTasks =
-      [...ALL_TASKS];
-
-    // Low activity tasks
-    if (Number(steps) < 3000) {
-
-      filteredTasks = [
-        ...filteredTasks,
-
-        "Walk extra 3000 steps today",
-        "Complete an outdoor walk",
-      ];
+    if (
+      !steps ||
+      !exercise ||
+      !sleep ||
+      !goal
+    ) {
+      alert("Please fill all fields.");
+      return;
     }
 
-    // Low sleep tasks
-    if (Number(sleep) < 6) {
+    try {
 
-      filteredTasks = [
-        ...filteredTasks,
+      setLoading(true);
 
-        "Take a recovery stretch session",
-        "Avoid caffeine at night",
-        "Prioritize recovery today",
-      ];
-    }
+      const email =
+        localStorage.getItem("userEmail") ||
+        "demo@gmail.com";
 
-    // Shuffle tasks
-    const shuffled =
-      filteredTasks.sort(
-        () => 0.5 - Math.random()
+      localStorage.setItem(
+        `fitness_${email}`,
+        JSON.stringify({
+          steps,
+          exercise,
+          sleep,
+          goal,
+        })
       );
 
-    // Select 10
-    const selected =
-      shuffled.slice(0, 10);
+      const response =
+        await fetch(
+          "/api/fitness-ai",
+          {
+            method: "POST",
 
-    setTasks(selected);
-  };
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-  // Generate initial tasks
-  useEffect(() => {
+            body: JSON.stringify({
 
-    generateTasks();
+              steps,
+              exercise,
+              sleep,
+              goal,
 
-  }, []);
+            }),
+          }
+        );
 
-  // Toggle complete
-  const toggleTask = (task) => {
+      const data =
+        await response.json();
 
-    if (completedTasks.includes(task)) {
-
-      setCompletedTasks(
-        completedTasks.filter(
-          (t) => t !== task
-        )
+      setRecommendation(
+        data.recommendation
       );
 
-    } else {
+    } catch (error) {
 
-      setCompletedTasks([
-        ...completedTasks,
-        task,
-      ]);
+      console.log(error);
+
+      setRecommendation(
+        "Unable to generate AI recommendation."
+      );
+
+    } finally {
+
+      setLoading(false);
+
     }
-  };
 
-  // Save fitness data
-  const saveFitnessData = () => {
-
-    const email =
-      localStorage.getItem(
-        "userEmail"
-      ) || "demo@gmail.com";
-
-    localStorage.setItem(
-      `fitness_${email}`,
-
-      JSON.stringify({
-        steps: Number(steps),
-        sleep: Number(sleep),
-      })
-    );
-
-    // Refresh tasks
-    generateTasks();
-
-    // Reset progress
-    setCompletedTasks([]);
-
-    alert(
-      "Fitness data saved & tasks updated!"
-    );
-  };
-
-  return (
-
+  };  return (
     <div className="min-h-screen bg-black text-white p-6">
 
       <div className="max-w-5xl mx-auto">
@@ -171,20 +97,18 @@ export default function FitnessPage() {
         <div className="mb-10">
 
           <h1 className="text-5xl font-bold mb-3">
-            Fitness Tracker
+            Daily Fitness Dashboard
           </h1>
 
-          <p className="text-gray-400 text-lg">
-            Track your health and complete
-            todays fitness missions.
-          </p>
+         
+
         </div>
 
-        {/* Input Section */}
-        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl mb-10">
+        {/* Input Card */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
 
-          <h2 className="text-2xl font-bold mb-6">
-            Daily Fitness Input
+          <h2 className="text-2xl font-bold mb-8">
+            Daily Fitness Details
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -193,7 +117,7 @@ export default function FitnessPage() {
             <div>
 
               <label className="block mb-3 text-gray-400">
-                Steps Walked
+                🚶 Steps Walked
               </label>
 
               <input
@@ -202,16 +126,36 @@ export default function FitnessPage() {
                 onChange={(e) =>
                   setSteps(e.target.value)
                 }
-                className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 outline-none focus:border-emerald-500"
                 placeholder="Enter today's steps"
+                className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 outline-none focus:border-emerald-500"
               />
+
+            </div>
+
+            {/* Exercise */}
+            <div>
+
+              <label className="block mb-3 text-gray-400">
+                🏃 Exercise Duration (minutes)
+              </label>
+
+              <input
+                type="number"
+                value={exercise}
+                onChange={(e) =>
+                  setExercise(e.target.value)
+                }
+                placeholder="Example: 45"
+                className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 outline-none focus:border-emerald-500"
+              />
+
             </div>
 
             {/* Sleep */}
             <div>
 
               <label className="block mb-3 text-gray-400">
-                Sleep Hours
+                😴 Sleep Hours
               </label>
 
               <input
@@ -220,116 +164,126 @@ export default function FitnessPage() {
                 onChange={(e) =>
                   setSleep(e.target.value)
                 }
+                placeholder="Example: 8"
                 className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 outline-none focus:border-emerald-500"
-                placeholder="Enter sleep hours"
               />
+
             </div>
+
+            {/* Goal */}
+            <div>
+
+              <label className="block mb-3 text-gray-400">
+                🎯 Fitness Goal
+              </label>
+
+              <select
+                value={goal}
+                onChange={(e) =>
+                  setGoal(e.target.value)
+                }
+                className="w-full p-4 rounded-2xl bg-zinc-800 border border-zinc-700 outline-none focus:border-emerald-500"
+              >
+                <option value="">
+                  Select Goal
+                </option>
+
+                <option value="Weight Loss">
+                  Weight Loss
+                </option>
+
+                <option value="Muscle Gain">
+                  Muscle Gain
+                </option>
+
+                <option value="Maintain Fitness">
+                  Maintain Fitness
+                </option>
+
+                <option value="Improve Endurance">
+                  Improve Endurance
+                </option>
+
+              </select>
+
+            </div>
+
           </div>
 
           <button
             onClick={saveFitnessData}
-            className="mt-8 w-full bg-emerald-500 hover:bg-emerald-600 transition-all py-4 rounded-2xl font-semibold text-lg"
+            disabled={loading}
+            className="mt-8 w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-700 transition-all py-4 rounded-2xl font-semibold text-lg"
           >
-            Save Fitness Data
+
+            {loading
+              ? "Generating AI Recommendation..."
+              : "Get AI Recommendation"}
+
           </button>
+
         </div>
+                {/* AI Recommendation */}
 
-        {/* Task Section */}
-        <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl">
+        <div className="mt-10 bg-zinc-900 border border-zinc-800 rounded-3xl p-8">
 
-          <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold mb-3">
+            🤖 AI Fitness Recommendation
+          </h2>
 
-            <div>
+          <p className="text-gray-400 mb-6">
+            Gemini AI analyzes your activity, exercise, sleep, and fitness goal to provide personalized guidance.
+          </p>
 
-              <h2 className="text-3xl font-bold">
-                Todays Fitness Missions
-              </h2>
+          {loading ? (
 
-              <p className="text-gray-400 mt-2">
-                Your personalized fitness tasks
-                based on your inputs.
+            <div className="text-center py-10">
+
+              <div className="animate-pulse text-emerald-400 text-xl font-semibold">
+
+                Generating your personalized recommendation...
+
+              </div>
+
+            </div>
+
+          ) : recommendation ? (
+
+            <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-6 whitespace-pre-wrap leading-8 text-gray-100">
+
+              {recommendation}
+
+            </div>
+
+          ) : (
+
+            <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-8 text-center">
+
+              <p className="text-gray-400 text-lg">
+
+                Your AI recommendation will appear here.
+
               </p>
+
+              <p className="text-gray-500 mt-2">
+
+                Fill in your fitness details above and click
+                <span className="text-emerald-400 font-semibold">
+                  {" "}Get AI Recommendation
+                </span>.
+
+              </p>
+
             </div>
 
-            <div className="bg-emerald-500/20 text-emerald-400 px-5 py-2 rounded-2xl text-sm">
+          )}
 
-              {completedTasks.length}/
-              {tasks.length} Completed
-            </div>
-          </div>
-
-          <div className="space-y-5">
-
-            {tasks.map((task, idx) => {
-
-              const completed =
-                completedTasks.includes(task);
-
-              return (
-
-                <div
-                  key={idx}
-                  className={`flex items-center gap-5 p-5 rounded-3xl transition-all border ${
-                    completed
-                      ? "bg-emerald-500/10 border-emerald-500/30"
-                      : "bg-zinc-800 border-zinc-700 hover:border-emerald-500/40"
-                  }`}
-                >
-
-                  <button
-                    onClick={() =>
-                      toggleTask(task)
-                    }
-                    className={`w-7 h-7 rounded-full border-2 flex items-center justify-center ${
-                      completed
-                        ? "bg-emerald-500 border-emerald-500"
-                        : "border-zinc-500"
-                    }`}
-                  >
-
-                    {completed && (
-                      <span className="text-black font-bold text-sm">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-
-                  <div className="flex-1">
-
-                    <p
-                      className={`text-lg ${
-                        completed
-                          ? "line-through text-gray-500"
-                          : "text-white"
-                      }`}
-                    >
-                      {task}
-                    </p>
-
-                    <p className="text-sm text-gray-500 mt-1">
-                      Daily fitness challenge
-                    </p>
-                  </div>
-
-                  <div
-                    className={`text-xs px-4 py-2 rounded-full ${
-                      completed
-                        ? "bg-emerald-500/20 text-emerald-400"
-                        : "bg-zinc-700 text-gray-300"
-                    }`}
-                  >
-                    {completed
-                      ? "Done"
-                      : "Pending"}
-                  </div>
-
-                </div>
-              );
-            })}
-          </div>
         </div>
 
       </div>
+
     </div>
+
   );
+
 }
